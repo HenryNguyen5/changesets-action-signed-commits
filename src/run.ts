@@ -130,6 +130,7 @@ export async function runPublish({
     { cwd }
   );
 
+  // TODO: Push lightweight tags through API
   await gitUtils.pushTags();
 
   let { packages, tool } = await getPackages(cwd);
