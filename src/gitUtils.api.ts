@@ -71,12 +71,14 @@ export function calculateAdditionsAndDeletions(
     ) {
       additions.push(fileStatus.filePath);
     }
+
     if (
       fileStatus.indexStatus === "D" ||
       fileStatus.workingTreeStatus === "D"
     ) {
       deletions.push(fileStatus.filePath);
     }
+
     if (
       fileStatus.indexStatus === "R" ||
       fileStatus.workingTreeStatus === "R"
