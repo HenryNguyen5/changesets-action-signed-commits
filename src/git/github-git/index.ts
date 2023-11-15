@@ -4,6 +4,7 @@ import * as repoStatus from "./repo-status";
 import * as repoCommit from "./repo-commit";
 import * as repoHead from "./repo-head";
 
+export { pushTags } from "./repo-tags";
 
 /**
  * Note that this diverges from the original implementation in that it does not
