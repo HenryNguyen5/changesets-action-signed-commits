@@ -1,6 +1,6 @@
 import * as core from "@actions/core";
 import fs from "fs-extra";
-import * as gitUtils from "./gitUtils";
+import * as gitUtils from "./git/local-git";
 import { runPublish, runVersion } from "./run";
 import readChangesetState from "./readChangesetState";
 

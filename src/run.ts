@@ -13,7 +13,7 @@ import {
   sortTheThings,
   getVersionsByDirectory,
 } from "./utils";
-import * as gitUtils from "./gitUtils";
+import * as gitUtils from "./git/local-git";
 import readChangesetState from "./readChangesetState";
 import resolveFrom from "resolve-from";
 import { throttling } from "@octokit/plugin-throttling";
