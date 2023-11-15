@@ -13,7 +13,8 @@ import {
   sortTheThings,
   getVersionsByDirectory,
 } from "./utils";
-import * as gitUtils from "./gitUtils";
+import * as localGitUtils from "./git/local-git";
+import * as githubGitUtils from "./git/github-git";
 import readChangesetState from "./readChangesetState";
 import resolveFrom from "resolve-from";
 import { throttling } from "@octokit/plugin-throttling";
@@ -130,7 +131,7 @@ export async function runPublish({
     { cwd }
   );
 
-  await gitUtils.pushTags();
+  await githubGitUtils.pushTags();
 
   let { packages, tool } = await getPackages(cwd);
   let releasedPackages: Package[] = [];
@@ -315,15 +316,27 @@ export async function runVersion({
   prBodyMaxCharacters = MAX_CHARACTERS_PER_MESSAGE,
 }: VersionOptions): Promise<RunVersionResult> {
   const octokit = setupOctokit(githubToken);
+  const { owner, repo } = github.context.repo;
 
-  let repo = `${github.context.repo.owner}/${github.context.repo.repo}`;
+  let fullRepo = `${owner}/${repo}`;
   let branch = github.context.ref.replace("refs/heads/", "");
   let versionBranch = `changeset-release/${branch}`;
 
   let { preState } = await readChangesetState(cwd);
 
-  await gitUtils.switchToMaybeExistingBranch(versionBranch);
-  await gitUtils.reset(github.context.sha);
+  const createdBranch = await localGitUtils.switchToMaybeExistingBranch(
+    versionBranch
+  );
+  // if branch doesnt exist, we need to push it up
+  // so that we can create a commit on it later
+  if (createdBranch) {
+    await localGitUtils.push(versionBranch);
+  }
+
+  // hard reset back to default branch
+  // so that we can get a clean state
+  // to regenerate all of the changesets
+  await localGitUtils.reset(github.context.sha);
 
   let versionsByDirectory = await getVersionsByDirectory(cwd);
 
@@ -340,8 +353,8 @@ export async function runVersion({
     });
   }
 
-  let searchQuery = `repo:${repo}+state:open+head:${versionBranch}+base:${branch}+is:pull-request`;
-  let searchResultPromise = octokit.rest.search.issuesAndPullRequests({
+  let searchQuery = `repo:${fullRepo}+state:open+head:${versionBranch}+base:${branch}+is:pull-request`;
+  const searchResult = await octokit.rest.search.issuesAndPullRequests({
     q: searchQuery,
   });
   let changedPackages = await getChangedPackages(cwd, versionsByDirectory);
@@ -365,16 +378,21 @@ export async function runVersion({
   const finalPrTitle = `${prTitle}${!!preState ? ` (${preState.tag})` : ""}`;
 
   // project with `commit: true` setting could have already committed files
-  if (!(await gitUtils.checkIfClean())) {
+  if (!(await localGitUtils.checkIfClean())) {
     const finalCommitMessage = `${commitMessage}${
       !!preState ? ` (${preState.tag})` : ""
     }`;
-    await gitUtils.commitAll(finalCommitMessage);
+    await githubGitUtils.commitAll(
+      octokit,
+      versionBranch,
+      owner,
+      repo,
+      finalCommitMessage
+    );
+
+    await localGitUtils.pullBranch(versionBranch);
   }
 
-  await gitUtils.push(versionBranch, { force: true });
-
-  let searchResult = await searchResultPromise;
   core.info(JSON.stringify(searchResult.data, null, 2));
 
   const changedPackagesInfo = (await changedPackagesInfoPromises)

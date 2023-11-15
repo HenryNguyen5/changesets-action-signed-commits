@@ -4,6 +4,7 @@ import remarkStringify from "remark-stringify";
 // @ts-ignore
 import mdastToString from "mdast-util-to-string";
 import { getPackages, Package } from "@manypkg/get-packages";
+import { exec, ExecOptions } from "@actions/exec";
 
 export const BumpLevels = {
   dep: 0,
@@ -97,4 +98,36 @@ export function sortTheThings(
     return 1;
   }
   return -1;
+}
+export async function execWithOutput(
+  cmd: Parameters<typeof exec>[0],
+  args: Parameters<typeof exec>[1],
+  opts?: { notrim?: boolean; cwd?: string }
+) {
+  let stdout = "";
+  let stderr = "";
+
+  const options: ExecOptions = {
+    listeners: {
+      stdout: (data: Buffer) => {
+        stdout += data.toString();
+      },
+      stderr: (data: Buffer) => {
+        stderr += data.toString();
+      },
+    },
+    cwd: opts?.cwd,
+  };
+
+  const exitCode = await exec(cmd, args, options);
+  if (exitCode !== 0) {
+    throw Error(stderr);
+  }
+
+  if (!opts?.notrim) {
+    stdout = stdout.trim();
+    stderr = stderr.trim();
+  }
+
+  return stdout;
 }

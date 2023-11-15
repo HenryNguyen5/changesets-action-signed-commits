@@ -1,6 +1,4 @@
 import fixturez from "fixturez";
-import * as github from "@actions/github";
-import * as githubUtils from "@actions/github/lib/utils";
 import fs from "fs-extra";
 import path from "path";
 import writeChangeset from "@changesets/write";
@@ -18,19 +16,22 @@ jest.mock("@actions/github", () => ({
   },
 }));
 jest.mock("@actions/github/lib/utils", () => ({
-    GitHub: {
-        plugin: () => {
-            // function necessary to be used as constructor
-            return function() {
-                return {
-                    rest: mockedGithubMethods,
-                }
-            }
-        },
+  GitHub: {
+    plugin: () => {
+      // function necessary to be used as constructor
+      return function () {
+        return {
+          rest: mockedGithubMethods,
+          graphql: jest.fn().mockReturnValue({
+            data: require("./git/github-git/__fixtures__/createCommitOnBranch.json"),
+          }),
+        };
+      };
     },
-    getOctokitOptions: jest.fn(),
+  },
+  getOctokitOptions: jest.fn(),
 }));
-jest.mock("./gitUtils");
+jest.mock("./git/local-git");
 
 let mockedGithubMethods = {
   search: {
@@ -41,6 +42,7 @@ let mockedGithubMethods = {
   },
   repos: {
     createRelease: jest.fn(),
+    getBranch: jest.fn().mockReturnValue({ data: { commit: { sha: "abc" } } }),
   },
 };
 
