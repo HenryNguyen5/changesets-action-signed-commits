@@ -22,6 +22,9 @@ jest.mock("@actions/github/lib/utils", () => ({
       return function () {
         return {
           rest: mockedGithubMethods,
+          graphql: jest.fn().mockReturnValue({
+            data: require("./git/github-git/__fixtures__/createCommitOnBranch.json"),
+          }),
         };
       };
     },
@@ -39,6 +42,7 @@ let mockedGithubMethods = {
   },
   repos: {
     createRelease: jest.fn(),
+    getBranch: jest.fn().mockReturnValue({ data: { commit: { sha: "abc" } } }),
   },
 };
 
