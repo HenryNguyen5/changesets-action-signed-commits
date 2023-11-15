@@ -1,5 +1,5 @@
 {
-  "name": "@changesets/action",
+  "name": "@henrynguyen5/changesets-action-signed-commits",
   "version": "1.4.5",
   "main": "dist/index.js",
   "license": "MIT",
